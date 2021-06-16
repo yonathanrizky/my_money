@@ -18,6 +18,6 @@ Route::post('register', 'UserController@register');
 Route::post('login', 'UserController@login');
 
 Route::group(['middleware' => ['jwt.verify']], function () {
-    Route::post('balance', 'BalanceController@store');
-    // Route::resource('balance', 'BalanceController');
+    // Route::post('balance', 'BalanceController@store');
+    Route::resource('balance', 'BalanceController');
 });
