@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\v1;
 
 use App\Balance;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,10 +35,6 @@ class BalanceController extends Controller
         return response()->json($data, 200);
     }
 
-    public function create()
-    {
-    }
-
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -64,34 +61,48 @@ class BalanceController extends Controller
     {
         $balance = new Balance();
         $balance = $balance->find($id);
-        return response()->json(compact('balance'), 201);
+        if ($balance) {
+            return response()->json(compact('balance'), 201);
+        } else {
+            return response()->json(['error' => 'id not found'], 400);
+        }
     }
 
-    public function edit(Balance $balance)
+    public function update(Request $request, $id)
     {
-        //
+        $validator = Validator::make($request->all(), [
+            'status' => 'required',
+            'balance' => 'required|numeric',
+            'description' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors()->toJson(), 400);
+        }
+
+        $balance = new Balance();
+        $balance = $balance::find($id);
+        if ($balance) {
+            $balance->status = $request->get('status');
+            $balance->balance = $request->get('balance');
+            $balance->description = $request->get('description');
+            $balance->save();
+
+            return response()->json(compact('balance'), 201);
+        } else {
+            return response()->json(['error' => 'id not found'], 400);
+        }
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Balance  $balance
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Balance $balance)
+    public function destroy($id)
     {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Balance  $balance
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Balance $balance)
-    {
-        //
+        $balance = new Balance();
+        $balance = $balance::find($id);
+        if ($balance) {
+            $balance->delete();
+            return response()->json(compact('balance'), 200);
+        } else {
+            return response()->json(['error' => 'id not found'], 400);
+        }
     }
 }
