@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\Api\v1;
+namespace App\Http\Controllers\API\v1;
 
 use App\Balance;
 use App\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Helpers\ResponseFormatter;
-use App\Mail\VerifyMail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
@@ -21,19 +20,19 @@ class UserController extends Controller
         $credentials = $request->only('email', 'password');
 
         try {
-            if (!$token = JWTAuth::attempt($credentials)) {
+            if (!$token = JWTAuth::customClaims(['email' => $request->email])->attempt($credentials)) {
                 return ResponseFormatter::error([
-                    'error' => 'invalid_credentials'
-                ], 'Register fails', 400);
+                    'error' => 'email not found'
+                ], 'Login fails', 400);
             }
         } catch (JWTException $e) {
             return ResponseFormatter::error([
                 'error' => $e->getMessage()
-            ], 'Register fails', 400);
+            ], 'Login fails', 400);
         }
 
         return ResponseFormatter::success([
-            'token' => $token,
+            'access_token' => $token,
             'token_type' => 'Bearer'
         ], 'Login Success');
     }
@@ -43,7 +42,7 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         if ($validator->fails()) {
@@ -76,7 +75,7 @@ class UserController extends Controller
         return ResponseFormatter::success([
             'user' => $user,
             'balance' => $balance,
-            'token' => $token,
+            'access_token' => $token,
             'token_type' => 'Bearer'
         ], 'Register Success');
     }

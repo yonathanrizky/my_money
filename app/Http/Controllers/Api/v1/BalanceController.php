@@ -1,17 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\Api\v1;
+namespace App\Http\Controllers\API\v1;
 
 use App\Balance;
 use App\Helpers\ResponseFormatter;
 use App\Http\Controllers\Controller;
-use App\Transaction;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-
-use function PHPUnit\Framework\isEmpty;
 
 class BalanceController extends Controller
 {
