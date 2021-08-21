@@ -14,11 +14,12 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::group(['prefix' => 'v1', 'namespace' => 'Api\v1'], function () {
+Route::group(['prefix' => 'v1', 'namespace' => 'API\v1'], function () {
     Route::post('register', 'UserController@register');
     Route::post('login', 'UserController@login');
 });
 
-Route::group(['prefix' => 'v1', 'namespace' => 'Api\v1', 'middleware' => ['jwt.verify']], function () {
+Route::group(['prefix' => 'v1', 'namespace' => 'API\v1', 'middleware' => ['jwt.verify']], function () {
     Route::resource('balance', 'BalanceController');
+    Route::resource('transaction', 'TransactionController');
 });

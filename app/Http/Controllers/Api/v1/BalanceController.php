@@ -3,58 +3,28 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Balance;
+use App\Helpers\ResponseFormatter;
 use App\Http\Controllers\Controller;
+use App\Transaction;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+
+use function PHPUnit\Framework\isEmpty;
 
 class BalanceController extends Controller
 {
     public function index(Request $request)
     {
-        $balance = new Balance();
-        $data_balance = $balance->where('user_id', $request->auth->id)->orderBy('created_at', 'desc')->get();
-        $user_id = $request->auth->id;
-        $balance_in = DB::select(
-            DB::raw("select sum(balance) as balance from balances where status = '1' and user_id = '$user_id' group by user_id")
-        )[0]->balance;
-
-        $balance_out = DB::select(
-            DB::raw("select sum(balance) as balance from balances where status = '2' and user_id = '$user_id' group by user_id")
-        )[0]->balance;
-
-        $balance = $balance_in - $balance_out;
-
-        $data = [
-            'data' => [
-                'balance' => $balance,
-                'data_balance' => $data_balance
-            ]
-        ];
-
-        return response()->json($data, 200);
+        $balance = Balance::where('user_id', $request->auth->id)->get();
+        return ResponseFormatter::success([
+            'balance' => $balance
+        ], 'Success Get Balance');
     }
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'status' => 'required',
-            'balance' => 'required|numeric',
-            'description' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
-        }
-
-        $balance = Balance::create([
-            'user_id' => $request->auth->id,
-            'status' => $request->get('status'),
-            'balance' => $request->get('balance'),
-            'description' => $request->get('description')
-        ]);
-
-        return response()->json(compact('balance'), 201);
     }
 
     public function show($id)
@@ -62,9 +32,13 @@ class BalanceController extends Controller
         $balance = new Balance();
         $balance = $balance->find($id);
         if ($balance) {
-            return response()->json(compact('balance'), 201);
+            return ResponseFormatter::success([
+                'balance' => $balance
+            ], 'get balance success');
         } else {
-            return response()->json(['error' => 'id not found'], 400);
+            return ResponseFormatter::error([
+                'error' => 'balance not found'
+            ], 'get balance failed', 400);
         }
     }
 
@@ -77,7 +51,9 @@ class BalanceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
+            return ResponseFormatter::error([
+                'error' => $validator->errors()
+            ], 'create transaction fails', 400);
         }
 
         $balance = new Balance();
@@ -88,9 +64,13 @@ class BalanceController extends Controller
             $balance->description = $request->get('description');
             $balance->save();
 
-            return response()->json(compact('balance'), 201);
+            return ResponseFormatter::success([
+                'balance' => $balance
+            ], 'get balance success');
         } else {
-            return response()->json(['error' => 'id not found'], 400);
+            return ResponseFormatter::error([
+                'error' => 'balance not found'
+            ], 'update transaction fails', 400);
         }
     }
 
@@ -100,9 +80,13 @@ class BalanceController extends Controller
         $balance = $balance::find($id);
         if ($balance) {
             $balance->delete();
-            return response()->json(compact('balance'), 200);
+            return ResponseFormatter::success([
+                'balance' => $balance
+            ], 'delete balance success');
         } else {
-            return response()->json(['error' => 'id not found'], 400);
+            return ResponseFormatter::error([
+                'error' => 'balance not found'
+            ], 'delete transaction fails', 400);
         }
     }
 }

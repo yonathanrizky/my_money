@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers\Api\v1;
 
+use App\Balance;
 use App\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Helpers\ResponseFormatter;
+use App\Mail\VerifyMail;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
@@ -18,13 +22,20 @@ class UserController extends Controller
 
         try {
             if (!$token = JWTAuth::attempt($credentials)) {
-                return response()->json(['error' => 'invalid_credentials'], 400);
+                return ResponseFormatter::error([
+                    'error' => 'invalid_credentials'
+                ], 'Register fails', 400);
             }
         } catch (JWTException $e) {
-            return response()->json(['error' => 'could_not_create_token'], 500);
+            return ResponseFormatter::error([
+                'error' => $e->getMessage()
+            ], 'Register fails', 400);
         }
 
-        return response()->json(compact('token'));
+        return ResponseFormatter::success([
+            'token' => $token,
+            'token_type' => 'Bearer'
+        ], 'Login Success');
     }
 
     public function register(Request $request)
@@ -36,17 +47,38 @@ class UserController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
+            return ResponseFormatter::error([
+                'error' => $validator->errors()
+            ], 'Register fails', 400);
         }
 
-        $user = User::create([
+        $data = [
             'name' => $request->get('name'),
             'email' => $request->get('email'),
             'password' => Hash::make($request->get('password')),
+            'confirmation_code' => md5(mt_rand())
+        ];
+
+        $user = User::create($data);
+        unset($data['password']);
+
+        $balance = Balance::create([
+            'user_id' => $user->id,
+            'balance' => 0,
         ]);
 
+        Mail::send('mail.verify', $data, function ($message) use ($request) {
+            $message->to($request->email, $request->name)
+                ->subject('Verify Your Email Address');
+        });
+
         $token = JWTAuth::fromUser($user);
-        return response()->json(compact('user', 'token'), 201);
+        return ResponseFormatter::success([
+            'user' => $user,
+            'balance' => $balance,
+            'token' => $token,
+            'token_type' => 'Bearer'
+        ], 'Register Success');
     }
 
     public function getAuthenticatedUser()
